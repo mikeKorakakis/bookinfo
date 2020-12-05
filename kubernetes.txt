@@ -1,0 +1,234 @@
+#install kubectl
+curl -LO "https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+
+
+ minikube start --cpus 2 --memory 4096 --driver=hyperv 
+minikube status
+minikube addons list
+minikube addons enable ingress dashboard heapster metrics-server registry
+minikube addons open dashboard
+minikube logs
+minikube docker-env
+kubectl get nodes 
+kubectl describe node minikube
+kubectl -n kube-system get pods -o yaml
+kubectl get pod -w
+
+ & minikube -p minikube docker-env | Invoke-Expression  #invoke minikuve daemon or eval `minikube docker-env`
+docker build -t first-app:v1 .dock
+ docker run -d -p 8000:80 first-app:v1 
+
+kubectl api-versions
+
+kubectl config set-context system --cluster=minikube --user=minikube --namespace=kube-system
+kubectl config use-context system
+kubectl -n kube-system get pod
+
+heml version 
+helm search hub jenkins
+helm repo add stable https://charts.helm.sh/stable
+helm install mediawiki stable/mediawiki
+heml updgrade --install first-app --namespace default
+tppMpwkJ5D
+minikube service --url -n default mediawiki
+
+####cluster
+
+sudo apt-get update && sudo apt-get upgrade -y
+##install docker
+sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+sudo swapoff -a
+### no to others
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+###others join
+sudo kubeadm join 192.168.1.250:6443 --token b0m0h7.o8gjdsnxmx0zna3p \
+    --discovery-token-ca-cert-hash sha256:1ba6bc87833d329a74d7626368ad993227a2c12caeb6ace93dc3cc9ed7254da3
+## reset kubeadm if needded
+sudo kubeadm reset
+
+### apply flannel
+
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+#troubleshooting
+
+#swap off
+free -h
+cat /proc/swaps
+
+kubectl logs client1
+service kubelet status
+ps -aux | grep kube-proxy
+kubectl cluster-info
+
+## backup deployment
+ kubectl get deployment nginx-dep -o yaml
+
+
+## update image
+kubectl set image deployment/nginx-dep nginx=nginx:1.8
+
+## rolout status
+ kubectl rollout status deployment/nginx-dep
+kubectl describe deployment/nginx-dep
+ kubectl apply -f nginx-dep.yaml
+
+#view history
+ kubectl rollout history deployment/nginx-dep --revision=1
+
+## apply revision
+ kubectl rollout undo deployment/nginx-dep --to-revision=2
+
+## access service outside
+kubectl expose deployment nginx-dep --type="NodePort" --port 80
+kubectl get service
+
+##ingress controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.41.2/deploy/static/provider/baremetal/deploy.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-01
+  labels:
+    app: nginx
+
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+
+ kubectl create -f web-01.yaml
+kubectl expose pod web-01 --type="ClusterIP" --port 80
+
+##export and change port
+kubectl get service ingress-nginx-controller -n ingress-nginx -o yaml >> ingress-controller.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+spec:
+  type: NodePort
+  ports:
+  - name: http-new
+    port: 80
+    targetPort: 80
+    protocol: TCP
+    nodePort: 30090
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/part-of: ingress-nginx
+
+ kubectl apply -f ingress.yaml
+
+## dns troubleshooting
+kubectl get services -n kube-system
+kubectl get endpoints kube-dns -n kube-system
+
+## nsf server
+ sudo apt install nfs-kernel-server
+sudo mkdir /var/nfs/general -p
+sudo chown nobody:nogroup general/
+id nobody
+65534
+sudo nano /etc/exports
+/var/nfs/general 192.168.1.251(rw,sync,no_subtree_check) 192.168.1.252(rw,sync,no_subtree_check)
+
+##create pv
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kube-pv
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Recycle
+  nfs:
+    path: /var/nfs/general
+    server: 192.168.1.250
+
+kubectl get pv
+
+#create pvc
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: kube-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+kubectl get pvc
+kubectl get pv # tha einai bound
+
+# pod for consuming 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nsf-pod
+spec:
+  containers:
+  - name: nsf-container
+    image: busybox:1.28
+    command:
+      - sleep
+      - "3600"
+    volumeMounts:
+    - mountPath: /tmp
+      name: nfsvol
+  restartPolicy: Always
+  securityContext:
+    fsGroup: 65534
+    runAsUser: 65534
+  volumes:
+    - name: nfsvol
+      persistentVolumeClaim:
+        claimName: kube-pvc
+
+kubectl describe pods # otan kolhsei
+kubectl exec -it nfs-pod -- sh

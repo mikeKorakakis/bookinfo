@@ -1,0 +1,49 @@
+choco install minikube
+minikube start
+
+kubectl get all
+kubectl get nodes
+minikube status
+kubectls get services
+kubectl create deployment nginx-depl --image=nginx 
+kubectl get deployment
+kubectl get pod
+kubectl logs nginx-depl-5c8bf76b5b-7z7sw # -p look last failed pod
+kubectl describe pod nginx-depl-5c8bf76b5b-7z7sw
+kubectl exec -it nginx-depl-5c8bf76b5b-7z7sw -- bin/bash
+kubectl create-f ngix-deployment.yml
+kubectl apply -f ngix-deployment.yml
+kubectl edit deployment myboot
+
+kubectl delete --all deployments --namespace=foo
+
+> kubectl apply -f mongo-secret.yml
+kubectl describe service mongodb-service
+
+kubectl get pod -o wide  # exei kai ip
+
+ kubectl get configmap
+
+minikube service mongo-express-service # deinei external ip
+
+minikube docker-env #exported docker envs
+ minikube dashboard --url # energopoiei dashboard
+minikube config view
+minikube ssh
+free -h
+
+kubectl run hello-minikube --image=k8s.gcr.... --port=8080
+kubectl expse deployment hello-minikube --type=NodePort
+
+minikube ip
+
+kubectl delete deployment
+kubectl delete service
+
+minikube stop
+minkube start
+minikube delete
+
+kompose
+
+kail -n namespace #view all logs

@@ -1,0 +1,83 @@
+sudo snap install microk8s --classic
+sudo ufw allow in on cni0 && sudo ufw allow out on cni0
+sudo ufw default allow routed
+microk8s.inspect
+microk8s.stop # stops microk8s for resources
+microk8s.stop
+microk8s.status
+
+sudo usermod -a -G microk8s mike
+    sudo chown -f -R mike ~/.kube
+
+
+
+microk8s kubectl -n kube-system edit configmap/coredns
+
+microk8s reset
+
+microk8s # shows commands
+microk8s.kubectl get po --all-namespaces
+microk8s.enable dashboard dns ingress registry
+sudo snap install kubectl --classic
+sudo snap install helm --classic
+
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install docker.io
+ sudo usermod -aG docker younis
+
+ microk8s.kubectl proxy --address=192.168.1.250 --accept-hosts=. * &
+ 
+http://192.168.1.250:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/#/login
+
+microk8s.kubectl get secret --all-namespaces
+microk8s.kubectl describe secret default-token-hrv45  -n kube-public
+
+token=$(microk8s kubectl -n kube-system get secret | grep default-token | cut -d " " -f1)
+microk8s kubectl -n kube-system describe secret $token
+
+microk8s.kubectl edit deployment/kubernetes-dashboard --namespace=kube-system
+- args:
+  - --enable-skip-login
+
+microk8s.enable istio
+microk8s.kubectl label namespace default istio-injection=enabled
+microk8s.kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.spec.ports[?(@.name=="http2")].nodePort}'
+31380
+kubectl get po -l istio=ingressgateway -n istio-system -o jsonpath='{.items[0].status.hostIP}'
+
+microks8s.add-node # commands for adding nodes
+
+mikrok8s.kubectl delete -k ./
+
+
+#helm
+helm repo add stable https://charts.helm.sh/stable
+helm repo update
+helm install  wordpress stable/wordpress
+kubectl edit svc --namespace default -w wordpress
+helm delete --purge wordpress
+
+kubectl create secret generic regcred \
+    --from-file=.dockerconfigjson=/home/mike/.docker/config.json \
+    --type=kubernetes.io/dockerconfigjson
+
+microk8s.crt images list
+
+kubectl exec --stdin --tty curl-dbdbb94bb-9kz75  -c istio-proxy -n bikeinfo -- /bin/sh
+
+ docker build --tag mikekorakakis/motobook:api -f Dockerfile-API .
+ docker build --tag mikekorakakis/motobook:client . --build-arg NEXT_PUBLIC_AUTH0_DOMAIN=identity.moto-book.com
+ docker push mikekorakakis/motobook:client
+ docker push mikekorakakis/motobook:api
+#delete evicted pods
+kubectl get pod | grep Evicted | awk '{print $1}' | xargs kubectl delete pod 
+
+ kubectl apply -f Kubernetes/namespace/motobook-ns.yaml  && kubectl apply -f Kubernetes/credentials/regcred.yaml  && kubectl apply -f Kubernetes/
+kubectl delete all --all -n motobook
+
+curl  http://identity.moto-book.com/.well-known/openid-configuration
+curl  http://10.152.183.75/.well-known/openid-configuration 
+curl  http://localhost:5000/.well-known/openid-configuration -v
+
+ microk8s.istioctl proxy-config  cluster -n istio-system identity-7664d7849c-75qgv.motobook 
